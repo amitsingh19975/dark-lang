@@ -1,0 +1,111 @@
+#ifndef DARK_TOKEN
+    #define DARK_TOKEN(Name, SnakeCaseName)
+#endif
+
+// The error token comes first because we want it to get the zero value, which
+// will also be used in default initialization.
+DARK_TOKEN(Error, error)
+
+#ifndef DARK_SYMBOL_TOKEN
+    #define DARK_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName) DARK_TOKEN(Name, SnakeCaseName)
+#endif
+
+#ifndef DARK_ONE_CHAR_SYMBOL_TOKEN
+#define DARK_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName) \
+  DARK_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName)
+#endif
+
+#ifndef DARK_TOKEN_WITH_VIRTUAL_NODE
+    #define DARK_TOKEN_WITH_VIRTUAL_NODE(Name, SnakeCaseName) Name
+#endif
+
+{{ 
+    from token_kind import make_ebnf_tokens_bag, make_lang_tokens_bag
+    ebnf_tokens = make_ebnf_tokens_bag()
+    lang_tokens = make_lang_tokens_bag()
+}}
+
+// ============================================================================
+// EBNF tokens
+// ============================================================================
+
+{{
+    for token in ebnf_tokens.symbols {
+        ostream.writeln('DARK_SYMBOL_TOKEN(ebnf_{}, "{}", ebnf_{})', token.kind, token.spelling, token.snake_case_name)
+    }
+}}
+
+{{
+    for token in lang_tokens.symbols {
+        ostream.writeln('DARK_SYMBOL_TOKEN({}, "{}", {})', token.kind, token.spelling, token.snake_case_name)
+    }
+}}
+
+#ifndef DARK_OPENING_GROUP_SYMBOL_TOKEN
+#define DARK_OPENING_GROUP_SYMBOL_TOKEN(Name, Spelling, ClosingName, SnakeCaseName) \
+  DARK_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName)
+#endif
+
+{{
+    for token in ebnf_tokens.open_groups {
+        ostream.writeln('DARK_OPENING_GROUP_SYMBOL_TOKEN(ebnf_{}, "{}", ebnf_{}, ebnf_{})', token.kind, token.spelling, token.matching_kind, token.snake_case_name)
+    }
+}}
+
+{{
+    for token in lang_tokens.open_groups {
+        ostream.writeln('DARK_OPENING_GROUP_SYMBOL_TOKEN({}, "{}", {}, {})', token.kind, token.spelling, token.matching_kind, token.snake_case_name)
+    }
+}}
+
+#ifndef DARK_CLOSING_GROUP_SYMBOL_TOKEN
+#define DARK_CLOSING_GROUP_SYMBOL_TOKEN(Name, Spelling, OpeningName, SnakeCaseName) \
+  DARK_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName)
+#endif  
+{{
+    for token in ebnf_tokens.close_groups {
+        ostream.writeln('DARK_CLOSING_GROUP_SYMBOL_TOKEN(ebnf_{}, "{}", ebnf_{}, ebnf_{})', token.kind, token.spelling, token.matching_kind, token.snake_case_name)
+    }
+}}
+
+{{
+    for token in lang_tokens.close_groups {
+        ostream.writeln('DARK_CLOSING_GROUP_SYMBOL_TOKEN({}, "{}", {}, {})', token.kind, token.spelling, token.matching_kind, token.snake_case_name)
+    }
+}}
+
+#ifndef DARK_KEYWORD_TOKEN
+    #define DARK_KEYWORD_TOKEN(Name, Spelling, SnakeCaseName) DARK_TOKEN(Name, SnakeCaseName)
+#endif
+
+{{
+    for token in ebnf_tokens.keywords {
+        ostream.writeln('DARK_KEYWORD_TOKEN(ebnf_{}, "{}", ebnf_{})', token.kind, token.spelling, token.snake_case_name)
+}}
+
+{{
+    for token in lang_tokens.keywords {
+        ostream.writeln('DARK_KEYWORD_TOKEN({}, "{}", {})', token.kind, token.spelling, token.snake_case_name)
+    }
+}}
+
+
+{{
+    for token in ebnf_tokens.misc {
+        ostream.writeln('DARK_TOKEN(ebnf_{}, ebnf_{})', token.kind, token.snake_case_name)
+    }
+}}
+
+{{
+    for token in lang_tokens.misc {
+        ostream.writeln('DARK_TOKEN({}, {})', token.kind, token.snake_case_name)
+    }
+}}
+
+#undef DARK_OPENING_GROUP_SYMBOL_TOKEN
+#undef DARK_CLOSING_GROUP_SYMBOL_TOKEN
+#undef DARK_ONE_CHAR_SYMBOL_TOKEN
+#undef DARK_SYMBOL_TOKEN
+#undef DARK_TOKEN
+#undef DARK_TOKEN_WITH_VIRTUAL_NODE
+#undef DARK_KEYWORD_TOKEN

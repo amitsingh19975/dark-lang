@@ -1,0 +1,3 @@
+add_catch_test(diagnostic_test.cpp)
+add_catch_test(diagnostic_emitter_test.cpp)
+add_catch_test(sorting_diagnostic_test.cpp)

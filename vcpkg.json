@@ -1,0 +1,13 @@
+{
+  "dependencies": [
+    "catch2",
+    {
+      "name": "llvm",
+      "features": [
+        "mlir"
+      ]
+    },
+    "simdutf",
+    "gmp"
+  ]
+}

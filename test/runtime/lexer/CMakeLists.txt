@@ -1,0 +1,1 @@
+add_catch_test(string_literal_test.cpp)

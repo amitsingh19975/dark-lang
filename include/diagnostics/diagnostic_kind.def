@@ -1,0 +1,61 @@
+// Auto-generated files.
+// All the changes will be overwritten.
+
+#ifndef DARK_DIAGNOSTIC_KIND
+    #error "Must define x-macro 'DARK_DIAGNOSTIC_KIND' before including this file"
+#endif
+
+
+// ============================================================================
+// SourceBuffer diagnostics
+// ============================================================================
+DARK_DIAGNOSTIC_KIND(ErrorOpeningFile)
+DARK_DIAGNOSTIC_KIND(ErrorStattingFile)
+DARK_DIAGNOSTIC_KIND(FileTooLarge)
+DARK_DIAGNOSTIC_KIND(ErrorReadingFile)
+
+// ============================================================================
+// Lexer diagnostics
+// ============================================================================
+DARK_DIAGNOSTIC_KIND(BinaryRealLiteral)
+DARK_DIAGNOSTIC_KIND(ContentBeforeStringTerminator)
+DARK_DIAGNOSTIC_KIND(DecimalEscapeSequence)
+DARK_DIAGNOSTIC_KIND(EmptyDigitSequence)
+DARK_DIAGNOSTIC_KIND(HexadecimalEscapeMissingDigits)
+DARK_DIAGNOSTIC_KIND(HexadecimalEscapeNotValid)
+DARK_DIAGNOSTIC_KIND(InvalidDigit)
+DARK_DIAGNOSTIC_KIND(InvalidDigitSeparator)
+DARK_DIAGNOSTIC_KIND(InvalidHorizontalWhitespaceInString)
+DARK_DIAGNOSTIC_KIND(IrregularDigitSeparators)
+DARK_DIAGNOSTIC_KIND(MismatchedClosing)
+DARK_DIAGNOSTIC_KIND(MismatchedIndentInString)
+DARK_DIAGNOSTIC_KIND(MultiLineStringWithDoubleQuotes)
+DARK_DIAGNOSTIC_KIND(NoWhitespaceAfterCommentIntroducer)
+DARK_DIAGNOSTIC_KIND(OctalRealLiteral)
+DARK_DIAGNOSTIC_KIND(TooManyDigits)
+DARK_DIAGNOSTIC_KIND(TrailingComment)
+DARK_DIAGNOSTIC_KIND(UnicodeEscapeInvalidDigits)
+DARK_DIAGNOSTIC_KIND(UnicodeEscapeMissingOpeningBrace)
+DARK_DIAGNOSTIC_KIND(UnicodeEscapeMissingClosingBrace)
+DARK_DIAGNOSTIC_KIND(UnicodeEscapeMissingBracedDigits)
+DARK_DIAGNOSTIC_KIND(UnicodeEscapeSurrogate)
+DARK_DIAGNOSTIC_KIND(UnicodeEscapeDigitsTooLarge)
+DARK_DIAGNOSTIC_KIND(UnicodeEscapeTooLarge)
+DARK_DIAGNOSTIC_KIND(UnknownBaseSpecifier)
+DARK_DIAGNOSTIC_KIND(UnknownEscapeSequence)
+DARK_DIAGNOSTIC_KIND(UnmatchedClosing)
+DARK_DIAGNOSTIC_KIND(UnrecognizedCharacters)
+DARK_DIAGNOSTIC_KIND(UnterminatedString)
+DARK_DIAGNOSTIC_KIND(WrongRealLiteralExponent)
+
+// ============================================================================
+// Test diagnostics
+// ============================================================================
+
+DARK_DIAGNOSTIC_KIND(TestDiagnostic)
+DARK_DIAGNOSTIC_KIND(TestDiagnosticNote)
+DARK_DIAGNOSTIC_KIND(TestDiagnosticWarning)
+DARK_DIAGNOSTIC_KIND(TestDiagnosticError)
+DARK_DIAGNOSTIC_KIND(TestDiagnosticInfo)
+
+#undef DARK_DIAGNOSTIC_KIND

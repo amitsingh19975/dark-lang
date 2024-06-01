@@ -1,0 +1,94 @@
+// Auto-generated files.
+// All the changes will be overwritten.
+
+#ifndef DARK_TOKEN
+    #define DARK_TOKEN(Name, SnakeCaseName)
+#endif
+
+// The error token comes first because we want it to get the zero value, which
+// will also be used in default initialization.
+DARK_TOKEN(Error, error)
+
+#ifndef DARK_SYMBOL_TOKEN
+    #define DARK_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName) DARK_TOKEN(Name, SnakeCaseName)
+#endif
+
+#ifndef DARK_ONE_CHAR_SYMBOL_TOKEN
+#define DARK_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName) \
+  DARK_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName)
+#endif
+
+#ifndef DARK_TOKEN_WITH_VIRTUAL_NODE
+    #define DARK_TOKEN_WITH_VIRTUAL_NODE(Name, SnakeCaseName) Name
+#endif
+
+
+
+// ============================================================================
+// EBNF tokens
+// ============================================================================
+
+DARK_SYMBOL_TOKEN(ebnf_EqualColonColon, "=::", ebnf_equal_colon_colon)
+DARK_SYMBOL_TOKEN(ebnf_RangeInclusive, "..=", ebnf_range_inclusive)
+DARK_SYMBOL_TOKEN(ebnf_Range, "..", ebnf_range)
+DARK_SYMBOL_TOKEN(ebnf_Or, "|", ebnf_or)
+DARK_SYMBOL_TOKEN(ebnf_ZeroOrMore, "*", ebnf_zero_or_more)
+DARK_SYMBOL_TOKEN(ebnf_OneOrMore, "+", ebnf_one_or_more)
+DARK_SYMBOL_TOKEN(ebnf_Optional, "?", ebnf_optional)
+DARK_SYMBOL_TOKEN(ebnf_Concat, ",", ebnf_concat)
+DARK_SYMBOL_TOKEN(ebnf_Semicolon, ";", ebnf_semicolon)
+DARK_SYMBOL_TOKEN(ebnf_Colon, ":", ebnf_colon)
+DARK_SYMBOL_TOKEN(ebnf_Equal, "=", ebnf_equal)
+DARK_SYMBOL_TOKEN(ebnf_Hash, "#", ebnf_hash)
+DARK_SYMBOL_TOKEN(ebnf_Dollar, "$", ebnf_dollar)
+
+
+
+#ifndef DARK_OPENING_GROUP_SYMBOL_TOKEN
+#define DARK_OPENING_GROUP_SYMBOL_TOKEN(Name, Spelling, ClosingName, SnakeCaseName) \
+  DARK_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName)
+#endif
+
+
+
+DARK_OPENING_GROUP_SYMBOL_TOKEN(OpenParen, "(", CloseParen, open_paren)
+DARK_OPENING_GROUP_SYMBOL_TOKEN(OpenBrace, "{", CloseBrace, open_brace)
+DARK_OPENING_GROUP_SYMBOL_TOKEN(OpenBracket, "[", CloseBracket, open_bracket)
+
+#ifndef DARK_CLOSING_GROUP_SYMBOL_TOKEN
+#define DARK_CLOSING_GROUP_SYMBOL_TOKEN(Name, Spelling, OpeningName, SnakeCaseName) \
+  DARK_ONE_CHAR_SYMBOL_TOKEN(Name, Spelling, SnakeCaseName)
+#endif  
+
+
+DARK_CLOSING_GROUP_SYMBOL_TOKEN(CloseParen, ")", OpenParen, close_paren)
+DARK_CLOSING_GROUP_SYMBOL_TOKEN(CloseBrace, "}", OpenBrace, close_brace)
+DARK_CLOSING_GROUP_SYMBOL_TOKEN(CloseBracket, "]", OpenBracket, close_bracket)
+
+#ifndef DARK_KEYWORD_TOKEN
+    #define DARK_KEYWORD_TOKEN(Name, Spelling, SnakeCaseName) DARK_TOKEN(Name, SnakeCaseName)
+#endif
+
+DARK_KEYWORD_TOKEN(ebnf_Import, "import", ebnf_import)
+
+
+
+
+
+
+DARK_TOKEN(Identifier, identifier)
+DARK_TOKEN(RealLiteral, real_literal)
+DARK_TOKEN(IntegerLiteral, integer_literal)
+DARK_TOKEN(StringLiteral, string_literal)
+DARK_TOKEN(CharacterLiteral, character_literal)
+DARK_TOKEN(BooleanLiteral, boolean_literal)
+DARK_TOKEN(FileStart, file_start)
+DARK_TOKEN(FileEnd, file_end)
+
+#undef DARK_OPENING_GROUP_SYMBOL_TOKEN
+#undef DARK_CLOSING_GROUP_SYMBOL_TOKEN
+#undef DARK_ONE_CHAR_SYMBOL_TOKEN
+#undef DARK_SYMBOL_TOKEN
+#undef DARK_TOKEN
+#undef DARK_TOKEN_WITH_VIRTUAL_NODE
+#undef DARK_KEYWORD_TOKEN

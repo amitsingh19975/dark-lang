@@ -1,0 +1,34 @@
+#ifndef DARK_DIAGNOSTIC_KIND
+    #error "Must define x-macro 'DARK_DIAGNOSTIC_KIND' before including this file"
+#endif
+{{from diagnostic_kind import DiagnosticKind}}
+
+// ============================================================================
+// SourceBuffer diagnostics
+// ============================================================================
+{{  
+    for kind in DiagnosticKind.source_buffer() {
+        ostream.writeln(f"DARK_DIAGNOSTIC_KIND({kind})")
+    }
+}}
+
+// ============================================================================
+// Lexer diagnostics
+// ============================================================================
+{{
+    for kind in DiagnosticKind.lexer() {
+        ostream.writeln(f"DARK_DIAGNOSTIC_KIND({kind})")
+    }
+}}
+
+// ============================================================================
+// Test diagnostics
+// ============================================================================
+
+{{
+    for kind in DiagnosticKind.test() {
+        ostream.writeln(f"DARK_DIAGNOSTIC_KIND({kind})")
+    }
+}}
+
+#undef DARK_DIAGNOSTIC_KIND
