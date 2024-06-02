@@ -18,4 +18,9 @@ TEST_CASE("Bit Array Test", "[bit_array]") {
     REQUIRE(bit_array[7] == false);
     REQUIRE(bit_array[8] == true);
     REQUIRE(bit_array[9] == false);
+
+    bit_array[0] = false;
+    bit_array[1] = true;
+    REQUIRE(bit_array[0] == false);
+    REQUIRE(bit_array[1] == true);
 }

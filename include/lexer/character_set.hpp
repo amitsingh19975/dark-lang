@@ -65,7 +65,7 @@ namespace dark::lexer::char_set {
             BitArray<std::numeric_limits<std::uint16_t>::max()> table{ };
             
             // if (c < 0x80) return is_alpha(c) || c == '_' || c == '$';
-            for (char32_t c = 0x00; c < 0x80; ++c) table.set(c, (is_alpha(c) || c == '_' || c == '$'));
+            for (char32_t c = 0x00; c < 0x80; ++c) table[c] = (is_alpha(c) || c == '_' || c == '$');
 
             // N1518: Recommendations for extended identifier characters for C and C++
             // Proposed Annex X.1: Ranges of characters allowed
@@ -100,46 +100,46 @@ namespace dark::lexer::char_set {
             //     || (c >= 0xFD40 && c <= 0xFDCF)
             //     || (c >= 0xFDF0 && c <= 0xFE44)
             //     || (c >= 0xFE47 && c <= 0xFFF8);
-            table.set(0x00A8, true);
-            table.set(0x00AA, true);
-            table.set(0x00AD, true);
-            table.set(0x00AF, true);
+            table[0x00A8] = true;
+            table[0x00AA] = true;
+            table[0x00AD] = true;
+            table[0x00AF] = true;
 
-            for (char32_t c = 0x00B2; c <= 0x00B5; ++c) table.set(c, true);
-            for (char32_t c = 0x00B7; c <= 0x00BA; ++c) table.set(c, true);
-            for (char32_t c = 0x00BC; c <= 0x00BE; ++c) table.set(c, true);
-            for (char32_t c = 0x00C0; c <= 0x00D6; ++c) table.set(c, true);
-            for (char32_t c = 0x00D8; c <= 0x00F6; ++c) table.set(c, true);
-            for (char32_t c = 0x00F8; c <= 0x00FF; ++c) table.set(c, true);
+            for (char32_t c = 0x00B2; c <= 0x00B5; ++c) table[c] = true;
+            for (char32_t c = 0x00B7; c <= 0x00BA; ++c) table[c] = true;
+            for (char32_t c = 0x00BC; c <= 0x00BE; ++c) table[c] = true;
+            for (char32_t c = 0x00C0; c <= 0x00D6; ++c) table[c] = true;
+            for (char32_t c = 0x00D8; c <= 0x00F6; ++c) table[c] = true;
+            for (char32_t c = 0x00F8; c <= 0x00FF; ++c) table[c] = true;
 
-            for (char32_t c = 0x0100; c <= 0x167F; ++c) table.set(c, true);
-            for (char32_t c = 0x1681; c <= 0x180D; ++c) table.set(c, true);
-            for (char32_t c = 0x180F; c <= 0x1FFF; ++c) table.set(c, true);
+            for (char32_t c = 0x0100; c <= 0x167F; ++c) table[c] = true;
+            for (char32_t c = 0x1681; c <= 0x180D; ++c) table[c] = true;
+            for (char32_t c = 0x180F; c <= 0x1FFF; ++c) table[c] = true;
 
-            for (char32_t c = 0x200B; c <= 0x200D; ++c) table.set(c, true);
-            for (char32_t c = 0x202A; c <= 0x202E; ++c) table.set(c, true);
-            for (char32_t c = 0x203F; c <= 0x2040; ++c) table.set(c, true);
+            for (char32_t c = 0x200B; c <= 0x200D; ++c) table[c] = true;
+            for (char32_t c = 0x202A; c <= 0x202E; ++c) table[c] = true;
+            for (char32_t c = 0x203F; c <= 0x2040; ++c) table[c] = true;
             
-            table.set(0x2054, true);
+            table[0x2054] = true;
 
-            for (char32_t c = 0x2060; c <= 0x206F; ++c) table.set(c, true);
+            for (char32_t c = 0x2060; c <= 0x206F; ++c) table[c] = true;
 
-            for (char32_t c = 0x2070; c <= 0x218F; ++c) table.set(c, true);
-            for (char32_t c = 0x2460; c <= 0x24FF; ++c) table.set(c, true);
-            for (char32_t c = 0x2776; c <= 0x2793; ++c) table.set(c, true);
-            for (char32_t c = 0x2C00; c <= 0x2DFF; ++c) table.set(c, true);
-            for (char32_t c = 0x2E80; c <= 0x2FFF; ++c) table.set(c, true);
+            for (char32_t c = 0x2070; c <= 0x218F; ++c) table[c] = true;
+            for (char32_t c = 0x2460; c <= 0x24FF; ++c) table[c] = true;
+            for (char32_t c = 0x2776; c <= 0x2793; ++c) table[c] = true;
+            for (char32_t c = 0x2C00; c <= 0x2DFF; ++c) table[c] = true;
+            for (char32_t c = 0x2E80; c <= 0x2FFF; ++c) table[c] = true;
 
-            for (char32_t c = 0x3004; c <= 0x3007; ++c) table.set(c, true);
-            for (char32_t c = 0x3021; c <= 0x302F; ++c) table.set(c, true);
-            for (char32_t c = 0x3031; c <= 0x303F; ++c) table.set(c, true);
+            for (char32_t c = 0x3004; c <= 0x3007; ++c) table[c] = true;
+            for (char32_t c = 0x3021; c <= 0x302F; ++c) table[c] = true;
+            for (char32_t c = 0x3031; c <= 0x303F; ++c) table[c] = true;
 
-            for (char32_t c = 0x3040; c <= 0xD7FF; ++c) table.set(c, true);
+            for (char32_t c = 0x3040; c <= 0xD7FF; ++c) table[c] = true;
 
-            for (char32_t c = 0xF900; c <= 0xFD3D; ++c) table.set(c, true);
-            for (char32_t c = 0xFD40; c <= 0xFDCF; ++c) table.set(c, true);
-            for (char32_t c = 0xFDF0; c <= 0xFE44; ++c) table.set(c, true);
-            for (char32_t c = 0xFE47; c <= 0xFFF8; ++c) table.set(c, true);
+            for (char32_t c = 0xF900; c <= 0xFD3D; ++c) table[c] = true;
+            for (char32_t c = 0xFD40; c <= 0xFDCF; ++c) table[c] = true;
+            for (char32_t c = 0xFDF0; c <= 0xFE44; ++c) table[c] = true;
+            for (char32_t c = 0xFE47; c <= 0xFFF8; ++c) table[c] = true;
 
             return table;
         }();
@@ -163,46 +163,46 @@ namespace dark::lexer::char_set {
             //     || (c >= 0x2E00 && c <= 0x2E7F) || (c >= 0x3001 && c <= 0x3003)
             //     || (c >= 0x3008 && c <= 0x3030)
 
-            for (char32_t c : U"/=-+*%<>!&|^~.?") table.set(c, true);
-            for (char32_t c = 0x00A1; c <= 0x00A7; ++c) table.set(c, true);
-            table.set(0x00A9, true);
-            table.set(0x00AB, true);
-            table.set(0x00AC, true);
-            table.set(0x00AE, true);
-            table.set(0x00B0, true);
-            table.set(0x00B1, true);
-            table.set(0x00B6, true);
-            table.set(0x00BB, true);
-            table.set(0x00BF, true);
-            table.set(0x00D7, true);
-            table.set(0x00F7, true);
-            table.set(0x2016, true);
-            table.set(0x2017, true);
-            for (char32_t c = 0x2020; c <= 0x2027; ++c) table.set(c, true);
-            for (char32_t c = 0x2030; c <= 0x203E; ++c) table.set(c, true);
-            for (char32_t c = 0x2041; c <= 0x2053; ++c) table.set(c, true);
-            for (char32_t c = 0x2055; c <= 0x205E; ++c) table.set(c, true);
-            for (char32_t c = 0x2190; c <= 0x23FF; ++c) table.set(c, true);
-            for (char32_t c = 0x2500; c <= 0x2775; ++c) table.set(c, true);
-            for (char32_t c = 0x2794; c <= 0x2BFF; ++c) table.set(c, true);
-            for (char32_t c = 0x2E00; c <= 0x2E7F; ++c) table.set(c, true);
-            for (char32_t c = 0x3001; c <= 0x3003; ++c) table.set(c, true);
-            for (char32_t c = 0x3008; c <= 0x3030; ++c) table.set(c, true);
+            for (char32_t c : U"/=-+*%<>!&|^~.?") table[c] = true;
+            for (char32_t c = 0x00A1; c <= 0x00A7; ++c) table[c] = true;
+            table[0x00A9] = true;
+            table[0x00AB] = true;
+            table[0x00AC] = true;
+            table[0x00AE] = true;
+            table[0x00B0] = true;
+            table[0x00B1] = true;
+            table[0x00B6] = true;
+            table[0x00BB] = true;
+            table[0x00BF] = true;
+            table[0x00D7] = true;
+            table[0x00F7] = true;
+            table[0x2016] = true;
+            table[0x2017] = true;
+            for (char32_t c = 0x2020; c <= 0x2027; ++c) table[c] = true;
+            for (char32_t c = 0x2030; c <= 0x203E; ++c) table[c] = true;
+            for (char32_t c = 0x2041; c <= 0x2053; ++c) table[c] = true;
+            for (char32_t c = 0x2055; c <= 0x205E; ++c) table[c] = true;
+            for (char32_t c = 0x2190; c <= 0x23FF; ++c) table[c] = true;
+            for (char32_t c = 0x2500; c <= 0x2775; ++c) table[c] = true;
+            for (char32_t c = 0x2794; c <= 0x2BFF; ++c) table[c] = true;
+            for (char32_t c = 0x2E00; c <= 0x2E7F; ++c) table[c] = true;
+            for (char32_t c = 0x3001; c <= 0x3003; ++c) table[c] = true;
+            for (char32_t c = 0x3008; c <= 0x3030; ++c) table[c] = true;
 
             return table;
         }();
 
         constexpr auto binary_digits = []() {
             auto res = BitArray<256>();
-            res.set(static_cast<unsigned>('0'), true);
-            res.set(static_cast<unsigned>('1'), true);
+            res[static_cast<unsigned>('0')] = true;
+            res[static_cast<unsigned>('1')] = true;
             return res;
         }();
 
         constexpr auto octal_digits = []() {
             auto res = BitArray<256>();
             for (unsigned c = 0; c < 8; ++c) {
-                res.set(static_cast<unsigned>('0') + c, true);
+                res[static_cast<unsigned>('0') + c] = true;
             }
             return res;
         }();
@@ -210,7 +210,7 @@ namespace dark::lexer::char_set {
         constexpr auto decimal_digits = []() {
             auto res = BitArray<256>();
             for (unsigned c = 0; c < 10; ++c) {
-                res.set(static_cast<unsigned>('0') + c, true);
+                res[static_cast<unsigned>('0') + c] = true;
             }
             return res;
         }();
@@ -218,11 +218,11 @@ namespace dark::lexer::char_set {
         constexpr auto hexadecimal_digits = []() {
             auto res = BitArray<256>();
             for (unsigned c = 0; c < 10; ++c) {
-                res.set(static_cast<unsigned>('0') + c, true);
+                res[static_cast<unsigned>('0') + c] = true;
             }
             for (unsigned c = 0; c < 6; ++c) {
-                res.set(static_cast<unsigned>('a') + c, true);
-                res.set(static_cast<unsigned>('A') + c, true);
+                res[static_cast<unsigned>('a') + c] = true;
+                res[static_cast<unsigned>('A') + c] = true;
             }
 
             return res;

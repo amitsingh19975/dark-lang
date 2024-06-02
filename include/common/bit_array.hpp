@@ -2,6 +2,7 @@
 #define __DARK_COMMON_BIT_ARRAY_HPP__
 
 #include <array>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <compare>
@@ -10,7 +11,45 @@
 
 namespace dark {
     template <std::size_t N>
-    struct alignas(8) BitArray {
+    class alignas(8) BitArray {
+        using base_type = std::uint8_t;
+        static constexpr std::size_t char_bit = CHAR_BIT * sizeof(base_type);
+        static constexpr std::size_t m_size = ((N + char_bit - 1) / char_bit);
+    public:
+        using size_type = std::size_t;
+
+        template <bool isConst>
+        struct BitWrapper{
+            using base_type = std::conditional_t<isConst, std::add_const_t<BitArray::base_type>, BitArray::base_type>;
+            using reference_t = std::add_lvalue_reference_t<base_type>;
+
+            constexpr BitWrapper(reference_t chunk, std::size_t index) noexcept
+                : chunk(chunk)
+                , index(index)
+            {}
+            constexpr BitWrapper(const BitWrapper&) noexcept = default;
+            constexpr BitWrapper(BitWrapper&&) noexcept = default;
+            constexpr BitWrapper& operator=(const BitWrapper&) noexcept = default;
+            constexpr BitWrapper& operator=(BitWrapper&&) noexcept = default;
+            constexpr ~BitWrapper() noexcept = default;
+            
+            constexpr BitWrapper& operator=(bool value) noexcept requires (!isConst) {
+                using value_type = BitArray::base_type;
+                chunk = value_type(value ? (chunk | (value_type{1} << index)) : (chunk & ~(value_type{1} << index)));
+                return *this;
+            }
+
+            constexpr operator bool() const noexcept {
+                return (chunk & (1 << index)) != 0;
+            }
+        private:
+            reference_t chunk;
+            size_type index;
+        };
+
+        using const_bit_wrapper = BitWrapper<true>;
+        using bit_wrapper = BitWrapper<false>;
+
         constexpr BitArray() noexcept = default;
         constexpr BitArray(const BitArray&) noexcept = default;
         constexpr BitArray(BitArray&&) noexcept = default;
@@ -27,48 +66,52 @@ namespace dark {
         constexpr BitArray(std::array<bool, N> const& arr) noexcept
             : BitArray()
         {
-            for (std::size_t i = 0; i < N; ++i) {
+            for (size_type i = 0; i < N; ++i) {
                 set(i, arr[i]);
             }
         }
 
-        constexpr bool operator[](std::size_t index) const noexcept {
-            return (data[index / 8] & (1 << (index % 8))) != 0;
+        constexpr const_bit_wrapper operator[](size_type index) const noexcept {
+            return {data[index / char_bit], index % char_bit};
+        }
+        
+        constexpr bit_wrapper operator[](size_type index) noexcept {
+            return {data[index / char_bit], index % char_bit};
         }
 
-        constexpr void set(std::size_t index, bool value) noexcept {
-            if (value) data[index / 8] |= (1 << (index % 8));
-            else data[index / 8] &= ~(1 << (index % 8));
+        constexpr void set(size_type index, bool value) noexcept {
+            if (value) data[index / char_bit] |= (1 << (index % char_bit));
+            else data[index / char_bit] &= ~(1 << (index % char_bit));
         }
 
         constexpr void reset() noexcept {
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 data[i] = 0;
             }
         }
 
         constexpr void flip() noexcept {
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 data[i] = ~data[i];
             }
         }
 
         constexpr BitArray& operator&=(const BitArray& other) noexcept {
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 data[i] &= other.data[i];
             }
             return *this;
         }
 
         constexpr BitArray& operator|=(const BitArray& other) noexcept {
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 data[i] |= other.data[i];
             }
             return *this;
         }
 
         constexpr BitArray& operator^=(const BitArray& other) noexcept {
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 data[i] ^= other.data[i];
             }
             return *this;
@@ -76,7 +119,7 @@ namespace dark {
 
         constexpr BitArray operator~() const noexcept {
             auto res = BitArray{};
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 res.data[i] = ~data[i];
             }
             return res;
@@ -84,7 +127,7 @@ namespace dark {
 
         constexpr BitArray operator&(const BitArray& other) const noexcept {
             auto res = BitArray{};
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 res.data[i] = data[i] & other.data[i];
             }
             return res;
@@ -92,7 +135,7 @@ namespace dark {
 
         constexpr BitArray operator|(const BitArray& other) const noexcept {
             auto res = BitArray{};
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 res.data[i] = data[i] | other.data[i];
             }
             return res;
@@ -100,22 +143,22 @@ namespace dark {
 
         constexpr BitArray operator^(const BitArray& other) const noexcept {
             auto res = BitArray{};
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 res.data[i] = data[i] ^ other.data[i];
             }
             return res;
         }
 
         constexpr auto operator<=>(const BitArray& other) const noexcept -> std::strong_ordering {
-            for (std::size_t i = 0; i < m_size; ++i) {
+            for (size_type i = 0; i < m_size; ++i) {
                 if (data[i] < other.data[i]) return std::strong_ordering::less;
                 if (data[i] > other.data[i]) return std::strong_ordering::greater;
             }
             return std::strong_ordering::equal;
         }
 
-        constexpr std::size_t size() const noexcept { return N; }
-        constexpr std::size_t actual_size() const noexcept { return m_size; }
+        constexpr size_type size() const noexcept { return N; }
+        constexpr size_type actual_size() const noexcept { return m_size; }
 
         struct Iterator;
 
@@ -124,9 +167,6 @@ namespace dark {
 
         constexpr Iterator end() noexcept { return Iterator{*this, N}; }
         constexpr Iterator end() const noexcept { return Iterator{*this, N}; }
-    private:
-        using base_type = std::uint8_t;
-        static constexpr std::size_t m_size = (N / 8) + static_cast<std::size_t>(N % 8 != 0);
     private:
         base_type data[m_size] = {0};
     };
