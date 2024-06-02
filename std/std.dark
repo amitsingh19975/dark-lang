@@ -1,0 +1,9 @@
+'''lexer(tensor)
+    use number;
+    tensor_extent = (number, 'x'?)*;
+    tenser ::= 'Tensor', whitespace*, '<', whitespace*, tensor_extent, whitespace*, '>';
+'''
+
+'''tensor
+Tensor<12x3423x123>
+'''
