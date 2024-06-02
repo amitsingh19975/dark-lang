@@ -1,7 +1,10 @@
 #ifndef __DARK_LEXER_STRING_LITERAL_HPP__
 #define __DARK_LEXER_STRING_LITERAL_HPP__
 
+#include "adt/buffer.hpp"
 #include "diagnostics/diagnostic_emitter.hpp"
+#include <array>
+#include <functional>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Allocator.h>
@@ -37,7 +40,75 @@ namespace dark::lexer {
             return content.substr(0, prefix_end).trim();
         }
 
+        static auto decode_unicode_escape(
+            LexerDiagnosticEmitter& emitter,
+            llvm::StringRef& input,
+            char32_t& result,
+            bool should_check_prefix = true
+        ) -> bool;
+
+        static auto decode_unicode_escape(
+            LexerDiagnosticEmitter& emitter,
+            llvm::StringRef& input,
+            Buffer<char>& buffer,
+            bool should_check_prefix = true
+        ) -> bool;
+        
     private:
+
+        template <typename Fn>
+            requires (std::is_invocable_r_v<bool, Fn, LexerDiagnosticEmitter&, llvm::StringRef>)
+        static auto decode_unicode_escape_helper(
+            LexerDiagnosticEmitter& emitter,
+            llvm::StringRef& input,
+            bool should_check_prefix,
+            Fn&& fn
+        ) -> bool {
+            if (should_check_prefix && input.starts_with("\\u")) {
+                input = input.drop_front(2);
+            }
+
+            auto remaining = input;
+
+            if (remaining.consume_front("{")) {
+                auto temp_digits = remaining.take_while([](auto c) { return c != '}'; });
+                auto digits = temp_digits.trim();
+                remaining = remaining.drop_front(temp_digits.size());
+                if (!remaining.consume_front("}")) {
+                    DARK_DIAGNOSTIC(UnicodeEscapeMissingClosingBrace, Error, 
+                        "Unicode escape sequence is missing closing brace."
+                    );
+                    emitter.build(input.begin(), UnicodeEscapeMissingClosingBrace)
+                        .add_error_suggestion_borrowed("Try adding a closing brace `}`")
+                        .emit();
+                    return false;
+                }
+
+                if (digits.empty()) {
+                    DARK_DIAGNOSTIC(UnicodeEscapeMissingBracedDigits, Error, 
+                        "Unicode escape sequence is missing digits."
+                    );
+                    emitter.emit(input.begin(), UnicodeEscapeMissingBracedDigits);
+                    return false;
+                }
+                
+                if (std::invoke(std::forward<Fn>(fn), emitter, digits)) {
+                    input = remaining;
+                    return true;
+                }
+            } else {
+                DARK_DIAGNOSTIC(UnicodeEscapeMissingOpeningBrace, Error, 
+                    "Unicode escape sequence is missing opening brace."
+                );
+
+                emitter.build(input.begin(), UnicodeEscapeMissingOpeningBrace)
+                    .add_error_suggestion_borrowed("Try adding an opening brace `{`")
+                    .emit();
+            }
+
+            return false;
+        }
+
         enum MultiLineKind: std::uint8_t {
             NotMultiLine,
             MultiLine,

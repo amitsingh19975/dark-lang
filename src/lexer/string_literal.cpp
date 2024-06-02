@@ -9,13 +9,16 @@
 #include "diagnostics/basic_diagnostic.hpp"
 #include "lexer/character_set.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <format>
 #include <limits>
 #include <llvm/ADT/SmallString.h>
+#include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/ErrorHandling.h>
 #include <llvm/Support/raw_ostream.h>
+#include <optional>
 #include <string_view>
 
 namespace dark::lexer {
@@ -277,11 +280,10 @@ namespace dark::lexer {
         );
     }
 
-    static inline auto expand_unicode_escape_sequence(
+    static inline auto get_and_check_code_point(
         LexerDiagnosticEmitter& emitter,
-        llvm::StringRef digits,
-        Buffer<char>& buffer
-    ) -> bool {
+        llvm::StringRef digits
+    ) -> std::optional<char32_t> {
         auto span = Span(0, static_cast<unsigned>(digits.size())).to_relative();
         if (digits.size() > 6) {
             DARK_DIAGNOSTIC(UnicodeEscapeDigitsTooLarge, Error, "Unicode escape sequence has too many digits.");
@@ -289,10 +291,10 @@ namespace dark::lexer {
                 .add_error_suggestion(make_owned(std::format("Expected at most 6 digits, but got {} digits", digits.size())), span)
                 .add_info_suggestion_borrowed("Try reducing the number of digits in the unicode escape sequence", span)
                 .emit();
-            return false;
+            return {};
         }
 
-        unsigned code_point = 0;
+        std::uint32_t code_point = 0;
 
         if (digits.getAsInteger(16, code_point)) {
             DARK_DIAGNOSTIC(UnicodeEscapeInvalidDigits, Error, 
@@ -301,7 +303,7 @@ namespace dark::lexer {
             emitter.build(digits.begin(), UnicodeEscapeInvalidDigits)
                 .set_span_length(static_cast<unsigned>(digits.size()))
                 .emit();
-            return false;
+            return {};
         }
 
         if (digits.getAsInteger(16, code_point) || code_point > 0x10FFFF) {
@@ -311,7 +313,7 @@ namespace dark::lexer {
             emitter.build(digits.begin(), UnicodeEscapeTooLarge)
                 .add_error_suggestion_borrowed("Unicode code points must be in the range 0x0 to 0x10FFFF.", span)
                 .emit();
-            return false;
+            return {};
         }
 
         if (code_point >= 0xD800 && code_point < 0xE000) {
@@ -321,15 +323,52 @@ namespace dark::lexer {
             emitter.build(digits.begin(), UnicodeEscapeSurrogate)
                 .add_error_suggestion_borrowed("Unicode code points in the range 0xD800 to 0xDFFF are reserved for surrogates.", span)
                 .emit();
-            return false;
+            return {};
         }
 
+        return static_cast<char32_t>(code_point);
+    }
+
+    static inline auto expand_unicode_escape_sequence(
+        LexerDiagnosticEmitter& emitter,
+        llvm::StringRef digits,
+        Buffer<char>& buffer
+    ) -> bool {
+        
+        auto code_point = get_and_check_code_point(emitter, digits);
+        if (!code_point) return false;
+
         char temp_buffer[5] = {0};
-        auto size = utf8::utf32_to_utf8(static_cast<char32_t>(code_point), temp_buffer);
+        auto size = utf8::utf32_to_utf8(*code_point, temp_buffer);
         dark_assert(size > 0, "utf32_to_utf8 should never return 0 or fail");
         dark_assert(buffer.space_left() >= size, "Buffer should have enough space for the utf8 sequence");
         buffer.push_back(temp_buffer, size);
         return true;
+    }
+
+    auto StringLiteral::decode_unicode_escape(
+        LexerDiagnosticEmitter& emitter,
+        llvm::StringRef& input,
+        Buffer<char>& buffer,
+        bool should_check_prefix
+    ) -> bool {
+        return decode_unicode_escape_helper(emitter, input, should_check_prefix, [&buffer](LexerDiagnosticEmitter& emitter, llvm::StringRef digits) {
+            return expand_unicode_escape_sequence(emitter, digits, buffer);
+        });
+    }
+
+    auto StringLiteral::decode_unicode_escape(
+        LexerDiagnosticEmitter& emitter,
+        llvm::StringRef& input,
+        char32_t& result,
+        bool should_check_prefix
+    ) -> bool {
+        return decode_unicode_escape_helper(emitter, input, should_check_prefix, [&result](LexerDiagnosticEmitter& emitter, llvm::StringRef digits) {
+            auto code_point = get_and_check_code_point(emitter, digits);
+            if (!code_point) return false;
+            result = *code_point;
+            return true;
+        });
     }
 
     static inline auto expand_and_consume_escape_sequence(
@@ -407,41 +446,8 @@ namespace dark::lexer {
                 return;
             }
             case 'u': {
-                auto remaining = content;
-                if (remaining.consume_front("{")) {
-                    auto temp_digits = remaining.take_while([](auto c) { return c != '}'; });
-                    auto digits = temp_digits.trim();
-                    remaining = remaining.drop_front(temp_digits.size());
-                    if (!remaining.consume_front("}")) {
-                        DARK_DIAGNOSTIC(UnicodeEscapeMissingClosingBrace, Error, 
-                            "Unicode escape sequence is missing closing brace."
-                        );
-                        emitter.build(content.begin(), UnicodeEscapeMissingClosingBrace)
-                            .add_error_suggestion_borrowed("Try adding a closing brace `}`")
-                            .emit();
-                        break;
-                    }
-
-                    if (digits.empty()) {
-                        DARK_DIAGNOSTIC(UnicodeEscapeMissingBracedDigits, Error, 
-                            "Unicode escape sequence is missing digits."
-                        );
-                        emitter.emit(content.begin(), UnicodeEscapeMissingBracedDigits);
-                        break;
-                    }
-
-                    if (expand_unicode_escape_sequence(emitter, digits, buffer)) {
-                        content = remaining;
-                        return;
-                    }
-                } else {
-                    DARK_DIAGNOSTIC(UnicodeEscapeMissingOpeningBrace, Error, 
-                        "Unicode escape sequence is missing opening brace."
-                    );
-
-                    emitter.build(content.begin(), UnicodeEscapeMissingOpeningBrace)
-                        .add_error_suggestion_borrowed("Try adding an opening brace `{`")
-                        .emit();
+                if (StringLiteral::decode_unicode_escape(emitter, content, buffer, false)) {
+                    return;
                 }
                 break;
             }
