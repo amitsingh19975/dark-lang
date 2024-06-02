@@ -3,7 +3,6 @@
 
 #include "adt/buffer.hpp"
 #include "diagnostics/diagnostic_emitter.hpp"
-#include <array>
 #include <functional>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringRef.h>
@@ -53,7 +52,7 @@ namespace dark::lexer {
             Buffer<char>& buffer,
             bool should_check_prefix = true
         ) -> bool;
-        
+
     private:
 
         template <typename Fn>
