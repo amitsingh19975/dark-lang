@@ -31,7 +31,7 @@ namespace dark {
     struct DiagnosticLocation {
         detail::SmallStringRef filename{};
         detail::SmallStringRef line{};
-        
+
         // 1-based line number and 0 means invalid
         unsigned line_number{0};
 
@@ -113,10 +113,10 @@ namespace dark {
     private:
         struct [[nodiscard]] DiagnosticMessageBuilder {
             DiagnosticMessageBuilder(
-                Diagnostic& diag, 
-                DiagnosticKind kind, 
+                Diagnostic& diag,
+                DiagnosticKind kind,
                 DiagnosticLocation location,
-                DiagnosticLevel level, 
+                DiagnosticLevel level,
                 Formatter format
             )
                 : m_diagnostic(&diag)
@@ -134,7 +134,7 @@ namespace dark {
                 m_message.messages.back().suggestions.push_back({std::move(message), span, diag_level});
                 return *this;
             }
-            
+
             [[nodiscard]] auto add_info(CowString message, Span span = {}) -> DiagnosticMessageBuilder& {
                 return add_suggestion(DiagnosticLevel::Info, std::move(message), span);
             }
@@ -163,7 +163,7 @@ namespace dark {
                 );
                 return *this;
             }
-    
+
             [[nodiscard]] auto add_insert_patch(CowString message, CowString insert_text, unsigned pos) -> DiagnosticMessageBuilder& {
                 auto const size = static_cast<unsigned>(insert_text.borrow().size());
                 return add_patch(
@@ -189,8 +189,8 @@ namespace dark {
             }
 
             [[nodiscard]] auto next(
-                DiagnosticKind kind, 
-                DiagnosticLocation location, 
+                DiagnosticKind kind,
+                DiagnosticLocation location,
                 DiagnosticLevel diag_level,
                 Formatter format
             ) -> DiagnosticMessageBuilder {
@@ -200,7 +200,7 @@ namespace dark {
 
             [[nodiscard]] auto next(
                 DiagnosticKind kind,
-                DiagnosticLocation location, 
+                DiagnosticLocation location,
                 DiagnosticLevel diag_level,
                 llvm::StringLiteral message
             ) -> DiagnosticMessageBuilder {
@@ -214,36 +214,36 @@ namespace dark {
 
     public:
         [[nodiscard]] auto build(
-            DiagnosticKind kind, 
-            DiagnosticLocation location, 
+            DiagnosticKind kind,
+            DiagnosticLocation location,
             DiagnosticLevel diag_level,
             Formatter format
         ) -> DiagnosticMessageBuilder {
             return DiagnosticMessageBuilder{*this, kind, location, diag_level, std::move(format)};
         }
-        
+
         [[nodiscard]] auto build(
             DiagnosticKind kind,
-            DiagnosticLocation location, 
+            DiagnosticLocation location,
             DiagnosticLevel diag_level,
             llvm::StringLiteral message
         ) -> DiagnosticMessageBuilder {
             return build(kind, location, diag_level, Formatter{message});
         }
     };
-    
+
     namespace detail {
         template <typename... Args>
         struct DiagnosticBase {
-            
+
             explicit constexpr DiagnosticBase(
-                DiagnosticKind kind, 
-                DiagnosticLevel level, 
+                DiagnosticKind kind,
+                DiagnosticLevel level,
                 llvm::StringLiteral format
             ) noexcept
                 : kind(kind)
                 , level(level)
-                , format(format) 
+                , format(format)
             {
                 static_assert((... && !std::is_same_v<Args, llvm::StringRef>),
                             "Use std::string or llvm::StringLiteral for diagnostics to "
@@ -255,7 +255,7 @@ namespace dark {
             llvm::StringLiteral format;
         };
     } // namespace detail
-    
+
 } // namespace dark
 
 

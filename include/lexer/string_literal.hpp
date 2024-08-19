@@ -75,34 +75,34 @@ namespace dark::lexer {
                 auto digits = temp_digits.trim();
                 remaining = remaining.drop_front(temp_digits.size());
                 if (!remaining.consume_front("}")) {
-                    DARK_DIAGNOSTIC(UnicodeEscapeMissingClosingBrace, Error, 
+                    DARK_DIAGNOSTIC(UnicodeEscapeMissingClosingBrace, Error,
                         "Unicode escape sequence is missing closing brace."
                     );
                     emitter.build(input.begin(), UnicodeEscapeMissingClosingBrace)
-                        .add_error_suggestion_borrowed("Try adding a closing brace `}`")
+                        .add_error_suggestion("Try adding a closing brace `}`")
                         .emit();
                     return false;
                 }
 
                 if (digits.empty()) {
-                    DARK_DIAGNOSTIC(UnicodeEscapeMissingBracedDigits, Error, 
+                    DARK_DIAGNOSTIC(UnicodeEscapeMissingBracedDigits, Error,
                         "Unicode escape sequence is missing digits."
                     );
                     emitter.emit(input.begin(), UnicodeEscapeMissingBracedDigits);
                     return false;
                 }
-                
+
                 if (std::invoke(std::forward<Fn>(fn), emitter, digits)) {
                     input = remaining;
                     return true;
                 }
             } else {
-                DARK_DIAGNOSTIC(UnicodeEscapeMissingOpeningBrace, Error, 
+                DARK_DIAGNOSTIC(UnicodeEscapeMissingOpeningBrace, Error,
                     "Unicode escape sequence is missing opening brace."
                 );
 
                 emitter.build(input.begin(), UnicodeEscapeMissingOpeningBrace)
-                    .add_error_suggestion_borrowed("Try adding an opening brace `{`")
+                    .add_error_suggestion("Try adding an opening brace `{`")
                     .emit();
             }
 

@@ -12,6 +12,7 @@
 #include <llvm/ADT/SmallVector.h>
 #include <string_view>
 #include <type_traits>
+
 namespace dark {
     template <typename LocT, typename AnnotationFn>
     struct DiagnosticAnnotationScope;
@@ -73,26 +74,6 @@ namespace dark {
                 return *this;
             }
 
-            auto add_info_suggestion_borrowed(std::string_view message, Span span = {}) -> DiagnosticBuilder& {
-                add_suggestion(DiagnosticLevel::Info, make_borrowed(message), span);
-                return *this;
-            }
-
-            auto add_note_suggestion_borrowed(std::string_view message, Span span = {}) -> DiagnosticBuilder& {
-                add_suggestion(DiagnosticLevel::Note, make_borrowed(message), span);
-                return *this;
-            }
-
-            auto add_warning_suggestion_borrowed(std::string_view message, Span span = {}) -> DiagnosticBuilder& {
-                add_suggestion(DiagnosticLevel::Warning, make_borrowed(message), span);
-                return *this;
-            }
-
-            auto add_error_suggestion_borrowed(std::string_view message, Span span = {}) -> DiagnosticBuilder& {
-                add_suggestion(DiagnosticLevel::Error, make_borrowed(message), span);
-                return *this;
-            }
-
             auto next_child_section(LocT loc) -> DiagnosticBuilder& {
                 dark_assert(m_diagnostic.collections.size() > 0, "Cannot add a child location without a message");
                 m_diagnostic.collections.back().messages.push_back(DiagnosticMessage {
@@ -112,7 +93,8 @@ namespace dark {
                 return *this;
             }
 
-            auto add_child_info_context(CowString message) -> DiagnosticBuilder& {
+            auto
+            add_child_info_context(CowString message) -> DiagnosticBuilder& {
                 add_child_context(DiagnosticLevel::Info, std::move(message));
                 return *this;
             }
@@ -127,44 +109,16 @@ namespace dark {
                 return *this;
             }
 
-            auto add_child_note_context_borrow(std::string_view message) -> DiagnosticBuilder& {
-                add_child_context(DiagnosticLevel::Note, make_borrowed(message));
-                return *this;
-            }
-
-            auto add_child_info_context_borrow(std::string_view message) -> DiagnosticBuilder& {
-                add_child_context(DiagnosticLevel::Info, make_borrowed(message));
-                return *this;
-            }
-
-            auto add_child_warning_context_borrow(std::string_view message) -> DiagnosticBuilder& {
-                add_child_context(DiagnosticLevel::Warning, make_borrowed(message));
-                return *this;
-            }
-
-            auto add_child_error_context_borrow(std::string_view message) -> DiagnosticBuilder& {
-                add_child_context(DiagnosticLevel::Error, make_borrowed(message));
-                return *this;
-            }
-
             auto add_patch_insert(CowString message, CowString insert_text, unsigned pos, DiagnosticLevel level = DiagnosticLevel::Info) -> DiagnosticBuilder& {
                 auto span = Span::from_size(pos, insert_text.borrow().size());
                 add_patch(level, std::move(message), std::move(insert_text), span, DiagnosticPatchKind::Insert);
             }
-            
-            auto add_patch_insert_borrowed(std::string_view message, std::string_view insert_text, unsigned pos, DiagnosticLevel level = DiagnosticLevel::Info) -> DiagnosticBuilder& {
-                add_patch_insert(level, make_borrowed(message), make_borrowed(insert_text), pos, DiagnosticPatchKind::Insert);
-            }
-            
+
             auto add_patch_insert(CowString message, CowString insert_text, DiagnosticLevel level = DiagnosticLevel::Info) -> DiagnosticBuilder& {
                 auto span = Span::from_size(0, message.borrow().size()).to_relative();
                 add_patch(level, std::move(message), std::move(insert_text), span, DiagnosticPatchKind::Insert);
             }
-            
-            auto add_patch_insert_borrowed(std::string_view message, std::string_view insert_text, DiagnosticLevel level = DiagnosticLevel::Info) -> DiagnosticBuilder& {
-                add_patch(level, make_borrowed(message), make_borrowed(insert_text), DiagnosticPatchKind::Insert);
-            }
-            
+
             auto patch_remove(std::string_view message, Span span, DiagnosticLevel level = DiagnosticLevel::Error) -> DiagnosticBuilder& {
                 add_patch(level, std::move(message), CowString(), span, DiagnosticPatchKind::Insert);
             }
@@ -181,7 +135,7 @@ namespace dark {
                 }
                 m_emitter->m_consumer->consume(std::move(m_diagnostic));
             }
-        
+
         private:
             friend struct DiagnosticEmitter<LocT>;
 
@@ -198,12 +152,12 @@ namespace dark {
                 dark_assert(m_diagnostic.collections.size() > 0, "Cannot add a suggestion without a message");
                 m_diagnostic.collections.back().messages.back().suggestions.push_back({std::move(message), span, level});
             }
-            
+
             auto add_patch(DiagnosticLevel level, CowString message, CowString patch_text, Span span, DiagnosticPatchKind patch_kind) -> void {
                 dark_assert(m_diagnostic.collections.size() > 0, "Cannot add a patch without a message");
                 m_diagnostic.collections.back().messages.back().suggestions.push_back({
-                    .message = std::move(message), 
-                    .span = span, 
+                    .message = std::move(message),
+                    .span = span,
                     .level = level,
                     .patch_kind = patch_kind,
                     .patch_content = std::move(patch_text)
@@ -255,12 +209,12 @@ namespace dark {
 
         explicit DiagnosticEmitter(DiagnosticConverter<LocT>& converter, DiagnosticConsumer& consumer) noexcept
             : m_converter(&converter)
-            , m_consumer(&consumer) 
+            , m_consumer(&consumer)
         {}
 
         template<typename... Args, typename... Ts>
-            requires (sizeof...(Args) == sizeof...(Ts) && 
-                (... && detail::is_constructable_to_format_args<Args>::value) && 
+            requires (sizeof...(Args) == sizeof...(Ts) &&
+                (... && detail::is_constructable_to_format_args<Args>::value) &&
                 (... && std::same_as< std::decay_t<std::remove_cvref_t<Args>>, std::decay_t<std::remove_cvref_t<Ts>> >)
             )
         auto emit(LocT loc, detail::DiagnosticBase<Args...> const& base, Ts&&... args) -> void {
@@ -269,18 +223,18 @@ namespace dark {
         }
 
         template<typename... Args, typename... Ts>
-            requires (sizeof...(Args) == sizeof...(Ts) && 
-                (... && detail::is_constructable_to_format_args<Args>::value) && 
+            requires (sizeof...(Args) == sizeof...(Ts) &&
+                (... && detail::is_constructable_to_format_args<Args>::value) &&
                 (... && std::same_as< std::decay_t<std::remove_cvref_t<Args>>, std::decay_t<std::remove_cvref_t<Ts>> >)
             )
         auto build(LocT loc, detail::DiagnosticBase<Args...> const& base, Ts&&... args) -> DiagnosticBuilder {
             return DiagnosticBuilder(this, loc, base, Formatter(base.format, std::forward<Ts>(args)...));
         }
-    
+
     private:
         template <typename OtherLocT, typename AnnotateFn>
         friend struct DiagnosticAnnotationScope;
-    
+
     private:
         DiagnosticConverter<LocT>* m_converter;
         DiagnosticConsumer* m_consumer;
@@ -305,7 +259,7 @@ namespace dark {
         DiagnosticEmitter<LocT>* m_emitter;
         AnnotateFn m_annotate;
     };
-    
+
     template <typename LocT, typename AnnotateFn>
     DiagnosticAnnotationScope(DiagnosticEmitter<LocT>& emitter, AnnotateFn annotate) -> DiagnosticAnnotationScope<LocT, AnnotateFn>;
 }

@@ -65,26 +65,29 @@ int main(int argc, char** argv) {
         originFilename = STDSourceFilename.getValue();
     }
 
-    auto diag = dark::Diagnostic {
-            .level = dark::DiagnosticLevel::Error,
-            .collections = {}
-    };
+    const char* str = "Test";
+    auto temp = dark::CowString(str);
+    llvm::outs() << temp.borrow() << "\n";
+    // auto diag = dark::Diagnostic {
+    //         .level = dark::DiagnosticLevel::Error,
+    //         .collections = {}
+    // };
 
-    auto mock = Mock{};
+    // auto mock = Mock{};
 
-    mock.converter.file = "test.cpp";
-    mock.converter.line = R"("""lexer
-            Hello,
-            World!
-            """
-           )";
+    // mock.converter.file = "test.cpp";
+    // mock.converter.line = R"("""lexer
+    //         Hello,
+    //         World!
+    //         """
+    //        )";
 
-    auto allocator = llvm::BumpPtrAllocator();
-    auto s = dark::lexer::StringLiteral::lex(mock.converter.line);
+    // auto allocator = llvm::BumpPtrAllocator();
+    // auto s = dark::lexer::StringLiteral::lex(mock.converter.line);
 
-    // auto c = s->compute_value(allocator, mock.emitter);
+    // // auto c = s->compute_value(allocator, mock.emitter);
 
-    llvm::outs() << "'" << s->get_codeblock_prefix() << "'\n";
+    // llvm::outs() << "'" << s->get_codeblock_prefix() << "'\n";
 
     return 0;
 }

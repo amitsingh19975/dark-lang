@@ -182,7 +182,7 @@ namespace dark::lexer {
                 introducer->prefix_size > 3
             );
         }
-        
+
         bool content_needs_validation = false;
         bool found_char = false;
         bool is_format_string = false;
@@ -210,7 +210,7 @@ namespace dark::lexer {
         for (; cursor < source_text_size; ++cursor) {
             auto const ch = source[cursor];
             found_char = found_char && !interesting_chars[static_cast<std::size_t>(ch)];
-            
+
             if (found_char) continue;
 
             switch (ch) {
@@ -288,8 +288,8 @@ namespace dark::lexer {
         if (digits.size() > 6) {
             DARK_DIAGNOSTIC(UnicodeEscapeDigitsTooLarge, Error, "Unicode escape sequence has too many digits.");
             emitter.build(digits.begin(), UnicodeEscapeDigitsTooLarge)
-                .add_error_suggestion(make_owned(std::format("Expected at most 6 digits, but got {} digits", digits.size())), span)
-                .add_info_suggestion_borrowed("Try reducing the number of digits in the unicode escape sequence", span)
+                .add_error_suggestion(std::format("Expected at most 6 digits, but got {} digits", digits.size()), span)
+                .add_info_suggestion("Try reducing the number of digits in the unicode escape sequence", span)
                 .emit();
             return {};
         }
@@ -297,7 +297,7 @@ namespace dark::lexer {
         std::uint32_t code_point = 0;
 
         if (digits.getAsInteger(16, code_point)) {
-            DARK_DIAGNOSTIC(UnicodeEscapeInvalidDigits, Error, 
+            DARK_DIAGNOSTIC(UnicodeEscapeInvalidDigits, Error,
                     "Unicode escape sequence contains invalid hexadecimal digits."
             );
             emitter.build(digits.begin(), UnicodeEscapeInvalidDigits)
@@ -307,21 +307,21 @@ namespace dark::lexer {
         }
 
         if (digits.getAsInteger(16, code_point) || code_point > 0x10FFFF) {
-            DARK_DIAGNOSTIC(UnicodeEscapeTooLarge, Error, 
+            DARK_DIAGNOSTIC(UnicodeEscapeTooLarge, Error,
                 "Invalid unicode escape sequence. Code point is too large."
             );
             emitter.build(digits.begin(), UnicodeEscapeTooLarge)
-                .add_error_suggestion_borrowed("Unicode code points must be in the range 0x0 to 0x10FFFF.", span)
+                .add_error_suggestion("Unicode code points must be in the range 0x0 to 0x10FFFF.", span)
                 .emit();
             return {};
         }
 
         if (code_point >= 0xD800 && code_point < 0xE000) {
-            DARK_DIAGNOSTIC(UnicodeEscapeSurrogate, Error, 
+            DARK_DIAGNOSTIC(UnicodeEscapeSurrogate, Error,
                     "Invalid unicode escape sequence. Code point is a surrogate."
             );
             emitter.build(digits.begin(), UnicodeEscapeSurrogate)
-                .add_error_suggestion_borrowed("Unicode code points in the range 0xD800 to 0xDFFF are reserved for surrogates.", span)
+                .add_error_suggestion("Unicode code points in the range 0xD800 to 0xDFFF are reserved for surrogates.", span)
                 .emit();
             return {};
         }
@@ -334,7 +334,7 @@ namespace dark::lexer {
         llvm::StringRef digits,
         Buffer<char>& buffer
     ) -> bool {
-        
+
         auto code_point = get_and_check_code_point(emitter, digits);
         if (!code_point) return false;
 
@@ -415,7 +415,7 @@ namespace dark::lexer {
             }
             case 'x': {
                 if (content.size() < 2) {
-                    DARK_DIAGNOSTIC(HexadecimalEscapeMissingDigits, Error, 
+                    DARK_DIAGNOSTIC(HexadecimalEscapeMissingDigits, Error,
                         "Hexadecimal escape sequence is too short.");
                     emitter.build(content.begin() - 1, HexadecimalEscapeMissingDigits)
                         .add_error_suggestion(make_owned(std::format("Expected 2 hexadecimal digits after this, but got {} digits", content.size())))
@@ -423,7 +423,7 @@ namespace dark::lexer {
                     break;
                 }
                 bool is_valid[] = { char_set::is_hex_digit(content[0]), char_set::is_hex_digit(content[1]) };
-                DARK_DIAGNOSTIC(HexadecimalEscapeNotValid, Error, 
+                DARK_DIAGNOSTIC(HexadecimalEscapeNotValid, Error,
                     "Hexadecimal escape sequence contains invalid digit."
                 );
                 if (!is_valid[0]) {
@@ -452,7 +452,7 @@ namespace dark::lexer {
                 break;
             }
             default: {
-                DARK_DIAGNOSTIC(UnknownEscapeSequence, Error, 
+                DARK_DIAGNOSTIC(UnknownEscapeSequence, Error,
                     "Unknown escape sequence `{}`.", std::string_view
                 );
 
@@ -481,12 +481,12 @@ namespace dark::lexer {
                 auto line_start = content.begin();
                 content = content.drop_while([](auto c) { return char_set::is_horizontal_space(c); });
                 if (!content.starts_with("\n")) {
-                    DARK_DIAGNOSTIC(MismatchedIndentInString, Error, 
+                    DARK_DIAGNOSTIC(MismatchedIndentInString, Error,
                         "Indentation does not match that of the closing `{}` in {} literal.",
                         std::string_view,
                         char const*
                     );
-                    auto span_end = static_cast<unsigned>(content.begin() - line_start); 
+                    auto span_end = static_cast<unsigned>(content.begin() - line_start);
                     auto span = Span(0, span_end).to_relative();
                     emitter.build(line_start, MismatchedIndentInString, terminator, is_reflection ? "a codeblock" : "a multi-line string")
                         .add_error_suggestion(
@@ -510,7 +510,7 @@ namespace dark::lexer {
                 buffer.push_back('\n');
                 continue;
             }
-            
+
             auto last_buffer = buffer;
 
             while (true) {
@@ -518,7 +518,7 @@ namespace dark::lexer {
                     return c == '\n' || c == '\\' || (char_set::is_horizontal_space(c) && c != ' ');
                 });
                 buffer.push_back(content, end_pos_of_regular_text);
-                
+
                 if (end_pos_of_regular_text == llvm::StringRef::npos) {
                     return llvm::StringRef{ buffer.data(), buffer.size() };
                 }
@@ -548,7 +548,7 @@ namespace dark::lexer {
                         );
                         auto span = Span(0, static_cast<unsigned>(std::min(content.size(), non_space_index))).to_relative();
                         emitter.build(content.begin(), InvalidHorizontalWhitespaceInString)
-                            .add_error_suggestion_borrowed("Use an escape sequence to express the whitespace", span)
+                            .add_error_suggestion("Use an escape sequence to express the whitespace", span)
                             .emit();
                         buffer.push_back(content, non_space_index);
                     }
@@ -565,7 +565,7 @@ namespace dark::lexer {
                 if (content.consume_front("\n")) {
                     break;
                 }
-                
+
                 expand_and_consume_escape_sequence(emitter, content, buffer);
 
                 last_buffer = buffer;
@@ -599,7 +599,7 @@ namespace dark::lexer {
         auto indent = compute_indent_from_final_line(text);
 
         if (indent.end() != content.end()) {
-            DARK_DIAGNOSTIC(ContentBeforeStringTerminator, Error, 
+            DARK_DIAGNOSTIC(ContentBeforeStringTerminator, Error,
                 "Only whitespace is permitted before the closing `{}` of a "
                 "multi-line string.",
                 std::string_view
@@ -632,7 +632,7 @@ namespace dark::lexer {
         auto buffer = Buffer<char>(allocator.Allocate<char>(m_content.size()), m_content.size());
 
         auto result = expand_escape_sequence_and_remove_indent(
-            emitter, 
+            emitter,
             m_content,
             indent,
             m_hash_level,

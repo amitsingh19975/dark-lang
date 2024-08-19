@@ -78,7 +78,7 @@ namespace dark::lexer {
             source = cleaned_source;
         }
 
-        return SignedBigNum(source, static_cast<unsigned>(radix)); 
+        return SignedBigNum(source, static_cast<unsigned>(radix));
     }
 
     struct NumericLiteral::Parser {
@@ -141,7 +141,7 @@ namespace dark::lexer {
 
             return exponent;
         }
-    
+
     private:
         struct CheckDigitSequenceResult {
             bool ok{false};
@@ -149,8 +149,8 @@ namespace dark::lexer {
         };
 
         constexpr auto check_digit_sequence(
-            llvm::StringRef source, 
-            Radix radix, 
+            llvm::StringRef source,
+            Radix radix,
             bool allow_digit_separators = true
         ) const noexcept -> CheckDigitSequenceResult {
             auto const& valid_digits = (radix == Radix::Binary) ? char_set::detail::binary_digits
@@ -170,7 +170,7 @@ namespace dark::lexer {
                     if (!allow_digit_separators || i == 0 || i + 1 == n || source[i - 1] == '_') {
                         DARK_DIAGNOSTIC(InvalidDigitSeparator, Error, "Misplaced digit separator in numeric literal.");
                         m_emitter.build(source.begin() + 1, InvalidDigitSeparator)
-                            .add_info_suggestion_borrowed("Try removing the misplaced digit separator.", Span(i, i + 1).to_relative())
+                            .add_info_suggestion("Try removing the misplaced digit separator.", Span(i, i + 1).to_relative())
                             .emit();
                     }
                     ++num_digit_separators;
@@ -179,8 +179,8 @@ namespace dark::lexer {
 
                 DARK_DIAGNOSTIC(InvalidDigit, Error, "Invalid digit '{0}' in {1} numeric literal", char, ::dark::lexer::NumericLiteral::Radix);
                 m_emitter.build(source.begin() + i, InvalidDigit, c, radix)
-                    .add_info_suggestion_borrowed("Try removing the invalid digit.", Span(i, i + 1).to_relative())
-                    .add_info_suggestion_borrowed("Try using a valid digit.", Span(i, i + 1).to_relative())
+                    .add_info_suggestion("Try removing the invalid digit.", Span(i, i + 1).to_relative())
+                    .add_info_suggestion("Try using a valid digit.", Span(i, i + 1).to_relative())
                     .emit();
                 return {
                     .ok = false,
@@ -221,7 +221,7 @@ namespace dark::lexer {
             }
 
             auto irregular_diagnostics = [this, source, radix, stride]() {
-                DARK_DIAGNOSTIC(IrregularDigitSeparators, Error, 
+                DARK_DIAGNOSTIC(IrregularDigitSeparators, Error,
                     "Digit separators in {} number should appear every {} characters "
                     "from the right.",
                     Radix, int
@@ -242,26 +242,26 @@ namespace dark::lexer {
                 if (*pos != '_') {
                     auto distance = static_cast<unsigned>(std::distance(source.begin(), pos));
                     irregular_diagnostics()
-                        .add_error_suggestion_borrowed("Misplaced digit separator.", Span(distance, distance + 1).to_relative())
+                        .add_error_suggestion("Misplaced digit separator.", Span(distance, distance + 1).to_relative())
                         .emit();
                     return;
                 }
-                
+
                 --remaining_separator;
             }
 
             if (remaining_separator != 0) {
                 irregular_diagnostics()
-                    .add_child_info_context_borrow("Remove the misplaced digit separator.")
+                    .add_child_info_context("Remove the misplaced digit separator.")
                     .emit();
             }
         }
-        
+
         auto check_leading_zeros() const noexcept -> bool {
             if (m_radix == Radix::Decimal && m_int_part.starts_with("0") && m_int_part != "0") {
                 DARK_DIAGNOSTIC(UnknownBaseSpecifier, Error, "Unknown base specifier in numeric literal.");
                 m_emitter.build(m_int_part.begin(), UnknownBaseSpecifier)
-                    .add_info_suggestion_borrowed("Try removing the unknown base specifier.", Span(0, 1).to_relative())
+                    .add_info_suggestion("Try removing the unknown base specifier.", Span(0, 1).to_relative())
                     .emit();
                 return false;
             }
@@ -280,7 +280,7 @@ namespace dark::lexer {
                 DARK_DIAGNOSTIC(BinaryRealLiteral, Error, "Binary real number literals are not supported.");
                 auto const span_end = static_cast<unsigned>(m_frac_part.size());
                 m_emitter.build(m_literal.m_source.begin() + m_literal.m_radix_point, BinaryRealLiteral)
-                    .add_error_suggestion_borrowed("Try removing the binary fractional part.", Span(0, span_end).to_relative())
+                    .add_error_suggestion("Try removing the binary fractional part.", Span(0, span_end).to_relative())
                     .emit();
                 return false;
             }
@@ -289,7 +289,7 @@ namespace dark::lexer {
                 DARK_DIAGNOSTIC(OctalRealLiteral, Error, "Octal real number literals are not supported.");
                 auto const span_end = static_cast<unsigned>(m_frac_part.size());
                 m_emitter.build(m_literal.m_source.begin() + m_literal.m_radix_point, OctalRealLiteral)
-                    .add_error_suggestion_borrowed("Try removing the octal fractional part.", Span(0, span_end).to_relative())
+                    .add_error_suggestion("Try removing the octal fractional part.", Span(0, span_end).to_relative())
                     .emit();
                 return false;
             }
@@ -297,7 +297,7 @@ namespace dark::lexer {
             m_mantissa_needs_cleaning = false;
             return check_digit_sequence(m_frac_part, m_radix, /*allow_digit_separators=*/false).ok;
         }
-        
+
         auto check_exponent_part() noexcept -> bool {
             if (m_literal.m_exponent == static_cast<unsigned>(m_literal.get_source().size())) return true;
             char expected_exponent_char = m_radix == Radix::Decimal ? 'e' : 'p';

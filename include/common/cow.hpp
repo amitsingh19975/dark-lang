@@ -1,11 +1,14 @@
 #ifndef __DARK_COMMON_COW_HPP__
 #define __DARK_COMMON_COW_HPP__
 
+#include <iostream>
+#include <llvm/Support/FormatProviders.h>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 #include <variant>
+
 namespace dark {
 
     struct borrowed_tag {};
@@ -16,19 +19,42 @@ namespace dark {
         using borrowed_type = Borrowed;
         using owned_type = Owned;
 
-
         static_assert(!std::is_same_v<borrowed_type, owned_type>, "Borrowed and owned types must be different");
         static_assert(std::is_trivially_destructible_v<borrowed_type>, "Borrowed type must be trivially destructible");
         static_assert(std::is_constructible_v<borrowed_type, owned_type> || std::is_convertible_v<owned_type, borrowed_type>, "Owned type must be constructible or convertible to borrowed type");
         static_assert(std::is_constructible_v<owned_type, borrowed_type> || std::is_convertible_v<borrowed_type, owned_type>, "Borrowed type must be constructible or convertible to owned type");
 
-        constexpr explicit Cow(borrowed_type value)
-            : m_data(value) 
+        constexpr explicit Cow(borrowed_type value) requires (!std::is_same_v<std::string_view, borrowed_type>)
+            : m_data(value)
         {}
-        
-        constexpr explicit Cow(owned_type value)
-            : m_data(std::move(value)) 
+
+        constexpr explicit Cow(owned_type value) requires (!std::is_same_v<std::string, owned_type>)
+            : m_data(std::move(value))
         {}
+
+        template <std::size_t N>
+        constexpr Cow(char (&value)[N])
+            : m_data(borrowed_type{value})
+        {}
+
+        template <std::size_t N>
+        constexpr Cow(char const (&value)[N])
+            : m_data(borrowed_type{value})
+        {}
+
+        template <typename O>
+            requires (std::constructible_from<owned_type, O>)
+        constexpr Cow(O value) requires (std::is_same_v<std::string, owned_type> || std::is_same_v<std::string_view, borrowed_type>)
+            : m_data(borrowed_type{})
+        {
+            if constexpr (std::is_same_v<std::decay_t<O>, owned_type>) {
+                m_data = std::move(value);
+            } else if constexpr (std::is_same_v<std::decay_t<O>, borrowed_type>) {
+                m_data = std::move(value);
+            } else {
+                m_data = owned_type(std::move(value));
+            }
+        }
 
         constexpr explicit Cow() requires std::is_same_v<std::string_view, borrowed_type>
             : Cow(borrowed_type{})
@@ -37,11 +63,11 @@ namespace dark {
         template <typename T>
         constexpr Cow(T&& v, owned_tag) requires std::is_constructible_v<owned_type, char const*>
             : m_data(owned_type(std::forward<T>(v))) {}
-        
+
         template <typename T>
         constexpr Cow(T&& v, borrowed_tag) requires std::is_constructible_v<borrowed_type, char const*>
             : m_data(borrowed_type(std::forward<T>(v))) {}
-        
+
         constexpr Cow(Cow const& other) noexcept(std::is_nothrow_copy_constructible_v<borrowed_type>)
             : m_data(other.borrow())
         {}
