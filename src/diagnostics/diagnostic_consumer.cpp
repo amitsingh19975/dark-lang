@@ -93,7 +93,7 @@ namespace dark {
 
                     auto const raw_lhs = lhs.span.raw();
                     auto const raw_rhs = rhs.span.raw();
-                    
+
                     // llvm::outs() << "LHS: " << lhs.span << ", RHS: " << rhs.span << '\n';
                     // llvm::outs() << "LHS: " << to_string(lhs.level) << ", RHS: " << to_string(rhs.level) << " = " << (lhs.level < rhs.level) << '\n';
                     // Higher the level, the less important it is.
@@ -197,7 +197,7 @@ namespace dark {
         }
     }
 
-    inline static auto escaped_string(llvm::StringRef str) -> std::pair<CowString, llvm::SmallVector<std::uint8_t, 256>> {
+    [[maybe_unused]] inline static auto escaped_string(llvm::StringRef str) -> std::pair<CowString, llvm::SmallVector<std::uint8_t, 256>> {
         auto count = static_cast<std::size_t>(std::count_if(str.begin(), str.end(), [](auto c) {
             return c == '\n' || c == '\r' || c == '\t';
         }));
@@ -210,7 +210,7 @@ namespace dark {
     }
 
     inline static auto highlight_context(
-        llvm::raw_ostream& os, 
+        llvm::raw_ostream& os,
         DiagnosticLocation const& location,
         unsigned max_line_number_width,
         llvm::SmallVector<DiagnosticMessageSuggestions> const& suggestions,
@@ -220,7 +220,7 @@ namespace dark {
         unsigned last_end = 0;
         llvm::StringRef line = llvm::StringRef(location.line).rtrim();
         print_line_number(os, location.line_number, max_line_number_width);
-        
+
         if (line.empty()) {
             return;
         }
@@ -240,7 +240,7 @@ namespace dark {
             if (span.empty()) continue;
             auto prefix_span = Span{ last_end, span.start() };
             auto prefix = line.substr(prefix_span.start(), prefix_span.size());
-            
+
             auto highlight = line.substr(span.start(), span.size());
 
             if (suggestion.patch_kind == DiagnosticPatchKind::Insert) {
@@ -362,10 +362,10 @@ namespace dark {
         llvm::SmallVector<DiagnosticMessageSuggestions> const& suggestions
     ) -> void {
         {
-            // 1. Find the place inside the cells for text. 
+            // 1. Find the place inside the cells for text.
             // | x |   | x |   |
             // |   | x |   |   |
-            
+
             auto const row_count = std::max(suggestions.size(), 20ul) + 1;
             llvm::SmallVector<Cell, 100 * 21> cells(row_count * col_count, Cell{});
 
@@ -455,14 +455,14 @@ namespace dark {
                     }
 
                     // llvm::outs() << "Total suggestion that can fit: " << total_suggestion_that_can_fit << "; diff: " << diff << '\n';
-                    
+
                     suggestions_positions.push_back({ line_index, col_start, first.span, first.level });
 
                     if (need_list) {
                         // Print the list item index.
                         put_list_index(line_index, col_start, first.level);
                     }
-                    
+
                     {
                         auto const temp_col_start = col_start + 2 * static_cast<unsigned>(need_list);
                         // Print the first suggestion.
@@ -553,15 +553,119 @@ namespace dark {
                 }
                 os.resetColor();
                 os << '\n';
-            }   
+            }
         }
 
+    }
+
+    inline static auto fix_diagnostic_message(DiagnosticMessage& message) -> Span {
+        Span default_span{};
+        {
+            // 3. Fix spans
+            auto len = message.location.length == 0 ? 0 : (message.location.length);
+            len = std::min(len, static_cast<unsigned>(message.location.get_line().size()) - message.location.column_number);
+
+            default_span = Span( message.location.column_number, message.location.column_number + len );
+            unsigned shift = 0;
+
+            std::sort(message.suggestions.begin(), message.suggestions.end(), [](auto const& lhs, auto const& rhs) {
+                if (lhs.span.start() == rhs.span.start()) {
+                    return (lhs.patch_kind >= rhs.patch_kind);
+                }
+                return (lhs.span.start() < rhs.span.start());
+            });
+
+            for (auto& suggestions: message.suggestions) {
+                if (suggestions.span.empty()) {
+                    suggestions.span = default_span;
+                    continue;
+                }
+
+                if (suggestions.span.is_relative()) {
+                    suggestions.span.set_offset(static_cast<std::ptrdiff_t>(message.location.column_number));
+                }
+
+                if (suggestions.patch_kind == DiagnosticPatchKind::Insert) {
+                    auto const size = static_cast<unsigned>(suggestions.patch_content.borrow().size());
+                    suggestions.span = Span::from_size(suggestions.span.start(), size);
+                    suggestions.span.set_shift(shift);
+                    shift += size;
+                } else {
+                    suggestions.span.set_shift(shift);
+                }
+            }
+        }
+        return default_span;
+    }
+
+    inline static auto normalize_diagnostic_messages(llvm::SmallVector<DiagnosticMessage> const& messages) {
+        auto res = llvm::SmallVector<llvm::SmallVector<std::pair<DiagnosticMessage, Span>>>();
+        res.reserve(messages.size());
+
+        // We can clone the object since it'll be a one-time use.
+        for (auto el: messages) {
+            llvm::StringRef line = el.location.line;
+            auto def_span = fix_diagnostic_message(el);
+            auto temp_cont = llvm::SmallVector<std::pair<DiagnosticMessage, Span>>{};
+            if (!line.contains('\n')) {
+                temp_cont.emplace_back(el, def_span);
+                res.emplace_back(std::move(temp_cont));
+                continue;
+            }
+
+            // "\n                Hello,\n            World!\n                "
+            //   ^                       ^                   ^
+
+            auto it = 0zu;
+            auto last_pos = 0zu;
+            auto line_number = 0u;
+            while (it != llvm::StringRef::npos) {
+                it = line.find_first_of('\n', last_pos + 1);
+                auto n = (it != llvm::StringRef::npos) ? (it - last_pos) : llvm::StringRef::npos;
+                auto sub = line.substr(last_pos, n).trim('\n');
+                last_pos = it;
+
+                auto pos_from_start = static_cast<std::size_t>(sub.data() - line.data());
+                auto pos_end = pos_from_start + sub.size();
+
+                auto suggestions = llvm::SmallVector<DiagnosticMessageSuggestions>{};
+                suggestions.reserve(el.suggestions.size());
+
+                auto default_span = Span(static_cast<unsigned>(pos_from_start), static_cast<unsigned>(pos_end));
+                for (auto&& s: el.suggestions) {
+                    if (default_span.contains(s.span)) {
+                        s.span.set_offset(-static_cast<std::ptrdiff_t>(pos_from_start));
+                        suggestions.emplace_back(std::move(s));
+                    }
+                }
+
+                if (suggestions.empty()) {
+                    default_span = Span();
+                }
+
+                temp_cont.emplace_back(DiagnosticMessage{
+                    .location = DiagnosticLocation {
+                        .column_number = default_span.start(),
+                        .line_number = el.location.line_number + line_number,
+                        .line = sub,
+                        .filename = el.location.filename
+                    },
+                    .suggestions = std::move(suggestions)
+                }, default_span);
+
+                ++line_number;
+            }
+
+            res.emplace_back(std::move(temp_cont));
+        }
+
+        return res;
     }
 
     auto StreamDiagnosticConsumer::consume(Diagnostic&& diagnostic) -> void {
         using Color = llvm::raw_ostream::Colors;
         // error: expected expression
-        //  --> std/std.dark:1:1 
+        //  --> std/std.dark:1:1
         //   |
         // 1 | auto out = get_stream(diagnostic.level, m_stream);
         //   | ^~~        ^~~~~
@@ -581,14 +685,14 @@ namespace dark {
         for (auto& collection : diagnostic.collections) {
             auto const max_line_number_width = get_max_line_number_width(collection) + 1;
             if (collection.messages.empty()) continue;
-            
+
             {
                 // 1. Show the diagnostic message
                 stream.changeColor(get_color(collection.level), true) << to_string(collection.level);
                 stream.changeColor(Color::WHITE, true) << ": ";
                 stream.resetColor() << collection.formatter.format() << '\n';
             }
-            
+
             {
                 // 2. Show the location of the diagnostic
                 auto const& message = collection.messages[0];
@@ -598,102 +702,42 @@ namespace dark {
                 }
             }
 
+            auto normalized_messages = normalize_diagnostic_messages(collection.messages);
 
-            for (auto& message : collection.messages) {
+            for (auto& messages : normalized_messages) {
+                for (auto& [message, default_span]: messages) {
+                    auto unique_suggestion_spans = fix_and_construct_unique_sorted_span(message);
+                    if (!message.location.line.empty()) {
+                        // 4. Show the line of the diagnostic
+                        highlight_context(stream, message.location, max_line_number_width, message.suggestions, unique_suggestion_spans, {
+                            .span = default_span,
+                            .level = collection.level,
+                            .ids = {}
+                        });
+                    }
 
-                auto [fixed_line, offsets] = escaped_string(message.location.line);
-                auto old_line = message.location.line;
-                message.location.line = fixed_line.borrow();
+                    if (!unique_suggestion_spans.empty()) {
+                        auto const last_span = unique_suggestion_spans.back().span;
+                        // | ----- Source Line ------ |
+                        //                   | ----- Last Span -------------- |
+                        //                            | ----- Extra Space ----- |
+                        auto const line_size = static_cast<unsigned>(message.location.line.size());
+                        auto const [_lhs, rhs] = Span{ 0, line_size }.split_if_intersect(last_span);
 
-                Span default_span{};
-                {
-                    // 3. Fix spans
-                    auto len = message.location.length == 0 ? 0 : (message.location.length);
-                    len = std::min(len, static_cast<unsigned>(message.location.get_line().size()) - message.location.column_number);
-                    
-                    default_span = Span( message.location.column_number, message.location.column_number + len );
-                    unsigned shift = 0;
-
-                    std::sort(message.suggestions.begin(), message.suggestions.end(), [](auto const& lhs, auto const& rhs) {
-                        if (lhs.span.start() == rhs.span.start()) {
-                            return (lhs.patch_kind >= rhs.patch_kind);
-                        }
-                        return (lhs.span.start() < rhs.span.start());
-                    });
-                    
-                    for (auto& suggestions: message.suggestions) {
-                        if (suggestions.span.empty()) {
-                            suggestions.span = default_span;
-                            continue;
-                        }
-
-                        if (suggestions.span.is_relative()) {
-                            suggestions.span.set_offset(static_cast<std::ptrdiff_t>(message.location.column_number));
-                        }
-
-                        if (!offsets.empty()) {
-                            auto start = suggestions.span.raw().start();
-                            auto offset = std::accumulate(offsets.begin(), offsets.begin() + start, 0u);
-                            auto size = suggestions.span.size();
-                            auto old_shift = suggestions.span.shift();
-
-                            start += offset;
-
-                            if (offsets[start]) start += offsets[start];
-
-                            for (auto i = start; i < start + size; ++i) {
-                                if (offsets[i]) {
-                                    size += offsets[start];
-                                }
-                            }
-
-                            suggestions.span = Span::from_size(start, size).set_shift(old_shift);
-                        }
-
-                        if (suggestions.patch_kind == DiagnosticPatchKind::Insert) {
-                            auto const size = static_cast<unsigned>(suggestions.patch_content.borrow().size());
-                            suggestions.span = Span::from_size(suggestions.span.start(), size);
-                            suggestions.span.set_shift(shift);
-                            shift += size;
-                        } else {
-                            suggestions.span.set_shift(shift);
-                        }
+                        auto const extra_space = (rhs.empty() ? last_span.size() : rhs.size()) + 10;
+                        auto const col_count = std::max(message.location.line.size() + extra_space, 100ul);
+                        // 4. Show the diagnostic context
+                        print_suggestions_message(stream, max_line_number_width, col_count, unique_suggestion_spans, message.suggestions);
                     }
                 }
 
-                auto unique_suggestion_spans = fix_and_construct_unique_sorted_span(message);
-                if (!message.location.line.empty()) {
-                    // 4. Show the line of the diagnostic
-                    highlight_context(stream, message.location, max_line_number_width, message.suggestions, unique_suggestion_spans, {
-                        .span = default_span,
-                        .level = collection.level,
-                        .ids = {}
-                    });
-                }
-
-                if (!unique_suggestion_spans.empty()) {
-                    auto const last_span = unique_suggestion_spans.back().span;
-                    // | ----- Source Line ------ |
-                    //                   | ----- Last Span -------------- |
-                    //                            | ----- Extra Space ----- |
-                    auto const line_size = static_cast<unsigned>(message.location.line.size());
-                    auto const [_lhs, rhs] = Span{ 0, line_size }.split_if_intersect(last_span);
-
-                    auto const extra_space = (rhs.empty() ? last_span.size() : rhs.size()) + 10;
-                    auto const col_count = std::max(message.location.line.size() + extra_space, 100ul);
-                    // 4. Show the diagnostic context
-                    print_suggestions_message(stream, max_line_number_width, col_count, unique_suggestion_spans, message.suggestions);
-                }
-                
-                message.location.line = old_line;
-            }
-            
-            {
-                // 5. Print all the context
-                for (auto const& context : collection.contexts) {
-                    stream.changeColor(get_color(context.level), true) << to_string(context.level);
-                    stream.changeColor(Color::WHITE, true) << ": ";
-                    stream.resetColor() << context.message.borrow() << '\n';
+                {
+                    // 5. Print all the context
+                    for (auto const& context : collection.contexts) {
+                        stream.changeColor(get_color(context.level), true) << to_string(context.level);
+                        stream.changeColor(Color::WHITE, true) << ": ";
+                        stream.resetColor() << context.message.borrow() << '\n';
+                    }
                 }
             }
         }

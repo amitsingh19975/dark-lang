@@ -598,7 +598,7 @@ namespace dark::lexer {
     ) -> llvm::StringRef {
         auto indent = compute_indent_from_final_line(text);
 
-        if (indent.end() != content.end()) {
+        if (indent.end() != content.end() && (terminator != "\"")) {
             DARK_DIAGNOSTIC(ContentBeforeStringTerminator, Error,
                 "Only whitespace is permitted before the closing `{}` of a "
                 "multi-line string.",

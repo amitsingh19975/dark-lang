@@ -21,7 +21,7 @@ TEST_CASE("String Literal", "[string_literal]") {
         REQUIRE(s->get_ident_error_pos() == -1);
         REQUIRE(s->is_reflection() == false);
     }
-    
+
     SECTION("Multiline Line String") {
         {
             auto s = StringLiteral::lex(
@@ -179,7 +179,7 @@ Hello,
             REQUIRE(s->get_ident_error_pos() == -1);
             REQUIRE(s->is_reflection() == false);
         }
-        
+
         {
             auto s = StringLiteral::lex(R"(###"Hello, World!"###)");
             REQUIRE(s.has_value());
@@ -394,13 +394,14 @@ TEST_CASE("Computed String Literal", "[string_literal_computed]") {
     SECTION("Checking octal errors") {
         auto scope = MockScope(mock);
         mock.converter.file = "test.cpp";
-        mock.converter.line = R"("Hello,\09 \nWorld!")";
+        mock.converter.line = R"("Hello,\09
+World!")";
 
         auto s = StringLiteral::lex(mock.converter.line);
         REQUIRE(s.has_value());
-        REQUIRE(s->get_content() == "Hello,\\09 \\nWorld!");
+        REQUIRE(s->get_content() == "Hello,\\09\nWorld!");
         REQUIRE(s->get_hash_level() == 0);
-        REQUIRE(s->is_multi_line() == false);
+        REQUIRE(s->is_multi_line() == true);
         REQUIRE(s->is_format_string() == false);
         REQUIRE(s->needs_validation() == true);
         REQUIRE(s->is_terminated() == true);
@@ -412,10 +413,11 @@ TEST_CASE("Computed String Literal", "[string_literal_computed]") {
         REQUIRE(!mock.consumer.empty());
         REQUIRE(mock.consumer.get_line() == "error: Invalid octal digit.");
         REQUIRE(mock.consumer.get_line() == "  --> test.cpp:1:9");
-        REQUIRE(mock.consumer.get_line() == R"( 1 | "Hello,\09 \nWorld!")");
+        REQUIRE(mock.consumer.get_line() == R"( 1 | "Hello,\09)");
         REQUIRE(mock.consumer.get_line() ==   "   |          ^");
         REQUIRE(mock.consumer.get_line() ==   "   |          |");
         REQUIRE(mock.consumer.get_line() ==   "   |          Expected an octal digit, but got '9'");
+        REQUIRE(mock.consumer.get_line() ==   " 2 | World!\"");
         REQUIRE(mock.consumer.empty());
     }
 
@@ -569,7 +571,7 @@ TEST_CASE("Computed String Literal", "[string_literal_computed]") {
             REQUIRE(mock.consumer.get_line() ==   "   |     ^~~~~~");
             REQUIRE(mock.consumer.empty());
         }
-        
+
         {
             auto scope = MockScope(mock);
             mock.converter.file = "test.cpp";
@@ -713,10 +715,14 @@ TEST_CASE("Computed String Literal", "[string_literal_computed]") {
             REQUIRE(!mock.consumer.empty());
             REQUIRE(mock.consumer.get_line() == "error: Indentation does not match that of the closing `\"` in a multi-line string literal.");
             REQUIRE(mock.consumer.get_line() == "  --> test.cpp:1:25");
-            REQUIRE(mock.consumer.get_line() == R"( 1 | "\n                Hello,\n            World!\n                "\n)");
-            REQUIRE(mock.consumer.get_line() == R"(   |                            ^~~~~~~~~~~~)");
-            REQUIRE(mock.consumer.get_line() == R"(   |                            |)");
-            REQUIRE(mock.consumer.get_line() == R"(   |                            Expected at least '16' characters of indentation, but found '12')");
+            REQUIRE(mock.consumer.get_line() == R"( 1 | ")");
+            REQUIRE(mock.consumer.get_line() == R"( 2 |                 Hello,)");
+            REQUIRE(mock.consumer.get_line() == R"( 3 |             World!)");
+            REQUIRE(mock.consumer.get_line() == R"(   | ^~~~~~~~~~~~)");
+            REQUIRE(mock.consumer.get_line() == R"(   | |)");
+            REQUIRE(mock.consumer.get_line() == R"(   | Expected at least '16' characters of indentation, but found '12')");
+            REQUIRE(mock.consumer.get_line() == R"( 4 |                 ")");
+            REQUIRE(mock.consumer.get_line() == R"( 5 | )");
             REQUIRE(mock.consumer.empty());
         }
     }
