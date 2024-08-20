@@ -6,6 +6,7 @@
 #include "diagnostics/basic_diagnostic.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <llvm/ADT/DenseSet.h>
 #include <llvm/ADT/SmallString.h>
 #include <llvm/ADT/SmallVector.h>
@@ -632,20 +633,23 @@ namespace dark {
                 suggestions.reserve(el.suggestions.size());
 
                 auto default_span = Span(static_cast<unsigned>(pos_from_start), static_cast<unsigned>(pos_end));
+                auto col_start = std::numeric_limits<unsigned>::max();
                 for (auto&& s: el.suggestions) {
                     if (default_span.contains(s.span)) {
                         s.span.set_offset(-static_cast<std::ptrdiff_t>(pos_from_start));
+                        col_start = std::min(s.span.start(), col_start);
                         suggestions.emplace_back(std::move(s));
                     }
                 }
 
                 if (suggestions.empty()) {
-                    default_span = Span();
+                    ++line_number;
+                    continue;
                 }
 
                 temp_cont.emplace_back(DiagnosticMessage{
                     .location = DiagnosticLocation {
-                        .column_number = default_span.start(),
+                        .column_number = std::max(col_start, 1u),
                         .line_number = el.location.line_number + line_number,
                         .line = sub,
                         .filename = el.location.filename
@@ -656,7 +660,7 @@ namespace dark {
                 ++line_number;
             }
 
-            res.emplace_back(std::move(temp_cont));
+            if (!temp_cont.empty()) res.emplace_back(std::move(temp_cont));
         }
 
         return res;
@@ -684,7 +688,8 @@ namespace dark {
 
         for (auto& collection : diagnostic.collections) {
             auto const max_line_number_width = get_max_line_number_width(collection) + 1;
-            if (collection.messages.empty()) continue;
+            auto normalized_messages = normalize_diagnostic_messages(collection.messages);
+            if (normalized_messages.empty()) continue;
 
             {
                 // 1. Show the diagnostic message
@@ -695,14 +700,12 @@ namespace dark {
 
             {
                 // 2. Show the location of the diagnostic
-                auto const& message = collection.messages[0];
+                auto const& message = normalized_messages[0][0].first;
                 if (message.location.can_be_printed()) {
                     stream.changeColor(Color::MAGENTA) << "  --> ";
                     stream.resetColor() << message.location << '\n';
                 }
             }
-
-            auto normalized_messages = normalize_diagnostic_messages(collection.messages);
 
             for (auto& messages : normalized_messages) {
                 for (auto& [message, default_span]: messages) {

@@ -417,7 +417,6 @@ World!")";
         REQUIRE(mock.consumer.get_line() ==   "   |          ^");
         REQUIRE(mock.consumer.get_line() ==   "   |          |");
         REQUIRE(mock.consumer.get_line() ==   "   |          Expected an octal digit, but got '9'");
-        REQUIRE(mock.consumer.get_line() ==   " 2 | World!\"");
         REQUIRE(mock.consumer.empty());
     }
 
@@ -714,15 +713,11 @@ World!")";
             REQUIRE(!c.empty());
             REQUIRE(!mock.consumer.empty());
             REQUIRE(mock.consumer.get_line() == "error: Indentation does not match that of the closing `\"` in a multi-line string literal.");
-            REQUIRE(mock.consumer.get_line() == "  --> test.cpp:1:25");
-            REQUIRE(mock.consumer.get_line() == R"( 1 | ")");
-            REQUIRE(mock.consumer.get_line() == R"( 2 |                 Hello,)");
+            REQUIRE(mock.consumer.get_line() == "  --> test.cpp:3:1");
             REQUIRE(mock.consumer.get_line() == R"( 3 |             World!)");
             REQUIRE(mock.consumer.get_line() == R"(   | ^~~~~~~~~~~~)");
             REQUIRE(mock.consumer.get_line() == R"(   | |)");
             REQUIRE(mock.consumer.get_line() == R"(   | Expected at least '16' characters of indentation, but found '12')");
-            REQUIRE(mock.consumer.get_line() == R"( 4 |                 ")");
-            REQUIRE(mock.consumer.get_line() == R"( 5 | )");
             REQUIRE(mock.consumer.empty());
         }
     }
